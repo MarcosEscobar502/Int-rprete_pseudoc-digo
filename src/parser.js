@@ -45,11 +45,14 @@ export function parse(tokens) {
     return tk;
   }
 
-  // ====== PROGRAMA ======
+  // PROGRAMA
   while (peek().type !== T.EOF) {
     parseFuncion();
   }
 
+  // ======================================
+  // <funcion> ... </funcion>
+  // ======================================
   function parseFuncion() {
     const start = match(T.TAG_FUNC_OPEN);
     if (!start) {
@@ -73,14 +76,13 @@ export function parse(tokens) {
     expect(T.TAG_FUNC_CLOSE, "Se esperaba </funcion>");
   }
 
-  // ====== PARÁMETROS TOLERANTES ======
+  // ======================================
+  // parámetros tolerantes
+  // ======================================
   function parseParamListLoose() {
     let first = true;
     while (peek().type !== T.TAG_PARAMS_CLOSE && peek().type !== T.EOF) {
-      if (!first) {
-        // si hay coma, la consumimos; si no, seguimos
-        match(T.COMMA);
-      }
+      if (!first) match(T.COMMA);
       parseParamLoose();
       first = false;
     }
@@ -98,85 +100,170 @@ export function parse(tokens) {
     }
   }
 
-  // ====== SENTENCIAS ======
+  // ======================================
+  // sentencias de <codigo>
+  // ======================================
   function parseSentencia() {
     const tk = peek();
+
+    // asignación
     if (tk.type === T.ID) {
       parseAsignacion();
-    } else if (tk.type === T.TAG_IF_OPEN) {
+      return;
+    }
+
+    // if
+    if (tk.type === T.TAG_IF_OPEN) {
       parseIf();
-    } else if (tk.type === T.TAG_DO_OPEN) {
+      return;
+    }
+
+    // do
+    if (tk.type === T.TAG_DO_OPEN) {
       parseDo();
-    } else {
+      return;
+    }
+
+    // basura del lexer (@, #, ¡, %)
+    if (tk.type === T.UNKNOWN) {
       synErrors.push({
         line: tk.line,
         col: tk.col,
         msg: "Sentencia no reconocida en <codigo>",
       });
       current++;
+      // nos comemos todo hasta ';' o fin de <codigo>
+      while (
+        peek().type !== T.SEMI &&
+        peek().type !== T.TAG_CODE_CLOSE &&
+        peek().type !== T.EOF
+      ) {
+        current++;
+      }
+      if (peek().type === T.SEMI) current++;
+      return;
     }
+
+    // cualquier otra cosa
+    synErrors.push({
+      line: tk.line,
+      col: tk.col,
+      msg: "Sentencia no reconocida en <codigo>",
+    });
+    current++;
   }
 
+  // ======================================
+  // asignación: id = expr ;
+  // (ahora con sincronización)
+  // ======================================
   function parseAsignacion() {
     const idTk = match(T.ID);
     expect(T.ASSIGN, "Se esperaba '=' en asignación");
     const okExpr = parseExpr();
-    const semi = match(T.SEMI);
+    let semi = match(T.SEMI);
+
+    // si no había ';', nos tragamos todo hasta ';' o cierre de <codigo>
+    if (!semi) {
+      while (
+        peek().type !== T.SEMI &&
+        peek().type !== T.TAG_CODE_CLOSE &&
+        peek().type !== T.EOF
+      ) {
+        current++;
+      }
+      if (peek().type === T.SEMI) {
+        semi = match(T.SEMI);
+      }
+    }
+
     const ok = !!idTk && okExpr && !!semi;
     if (ok) report.asignacionesValidas++;
     else report.asignacionesInvalidas++;
   }
 
+  // ======================================
+  // if
+  // ======================================
   function parseIf() {
     expect(T.TAG_IF_OPEN, "Se esperaba <if>");
     expect(T.TAG_COND_OPEN, "Se esperaba <condicion> dentro de <if>");
+
     const condOK = parseCondicion();
+
+    // recuperación: saltar hasta </condicion> si quedó mal
+    if (peek().type !== T.TAG_COND_CLOSE) {
+      while (peek().type !== T.TAG_COND_CLOSE && peek().type !== T.EOF) {
+        current++;
+      }
+    }
+
     expect(T.TAG_COND_CLOSE, "Se esperaba </condicion> en <if>");
     expect(T.TAG_CODE_OPEN, "Se esperaba <codigo> dentro de <if>");
+
     while (peek().type !== T.TAG_CODE_CLOSE && peek().type !== T.EOF) {
       parseSentencia();
     }
+
     expect(T.TAG_CODE_CLOSE, "Se esperaba </codigo> en <if>");
     expect(T.TAG_IF_CLOSE, "Se esperaba </if>");
+
     if (condOK) report.ifValidos++;
     else report.ifInvalidos++;
   }
 
+  // ======================================
+  // do ... while
+  // ======================================
   function parseDo() {
     expect(T.TAG_DO_OPEN, "Se esperaba <do>");
     expect(T.TAG_CODE_OPEN, "Se esperaba <codigo> dentro de <do>");
+
     while (peek().type !== T.TAG_CODE_CLOSE && peek().type !== T.EOF) {
       parseSentencia();
     }
+
     expect(T.TAG_CODE_CLOSE, "Se esperaba </codigo> en <do>");
     expect(T.TAG_COND_OPEN, "Se esperaba <condicion> en <do>");
+
     const condOK = parseCondicion();
+
+    if (peek().type !== T.TAG_COND_CLOSE) {
+      while (peek().type !== T.TAG_COND_CLOSE && peek().type !== T.EOF) {
+        current++;
+      }
+    }
+
     expect(T.TAG_COND_CLOSE, "Se esperaba </condicion> en <do>");
     expect(T.TAG_DO_CLOSE, "Se esperaba </do>");
+
     if (condOK) report.doValidos++;
     else report.doInvalidos++;
   }
 
+  // ======================================
+  // condicion
+  // ======================================
   function parseCondicion() {
     let ok = true;
     const first = parseCondFactor();
     if (!first) ok = false;
+
     while (peek().type === T.AND || peek().type === T.OR) {
-      current++; // consumimos AND/OR
+      current++;
       const next = parseCondFactor();
       if (!next) ok = false;
     }
+
     if (ok) report.condicionesValidas++;
     else report.condicionesInvalidas++;
     return ok;
   }
 
-  // ====== AQUÍ blindamos TODAS las variantes de <= ======
   function parseCondFactor() {
     const leftOk = parseExpr();
-    let op = peek();
+    const op = peek();
 
-    // 1) caso normal: el lexer ya lo dio bien
     if (
       op.type === T.EQ ||
       op.type === T.NEQ ||
@@ -185,20 +272,14 @@ export function parse(tokens) {
       op.type === T.GE ||
       op.type === T.LE
     ) {
-      current++; // consumimos operador
-    }
-    // 2) caso raro A: "= <"  -> lexer lo partió como ASSIGN, LT
-    else if (op.type === T.ASSIGN && tokens[current + 1] && tokens[current + 1].type === T.LT) {
-      current += 2; // consumimos "=" y "<"
-      op = { type: T.LE };
-    }
-    // 3) caso raro B: "< ="  -> lexer lo partió como LT, ASSIGN (el que viste en consola)
-    else if (op.type === T.LT && tokens[current + 1] && tokens[current + 1].type === T.ASSIGN) {
-      current += 2; // consumimos "<" y "="
-      op = { type: T.LE };
-    }
-    // cualquier otra cosa no es operador relacional válido
-    else {
+      current++;
+    } else {
+      synErrors.push({
+        line: op.line,
+        col: op.col,
+        msg: "Operador relacional inválido en <condicion>",
+      });
+      current++;
       return false;
     }
 
@@ -206,28 +287,32 @@ export function parse(tokens) {
     return leftOk && rightOk;
   }
 
+  // ======================================
+  // expr
+  // ======================================
   function parseExpr() {
     let ok = false;
     const tk = peek();
+
     if (tk.type === T.ID || tk.type === T.NUM || tk.type === T.STRING) {
       ok = true;
       current++;
     } else if (tk.type === T.UNKNOWN) {
-      // consumimos basura pero marcamos que no quedó perfecto
       current++;
+    } else {
+      return false;
     }
 
-    // operaciones aritméticas opcionales
     while (
       peek().type === T.PLUS ||
       peek().type === T.MINUS ||
       peek().type === T.TIMES ||
       peek().type === T.DIV
     ) {
-      current++; // operador
+      current++;
       const right = peek();
       if (right.type === T.ID || right.type === T.NUM) {
-        current++; // operando derecho
+        current++;
       } else {
         ok = false;
         break;

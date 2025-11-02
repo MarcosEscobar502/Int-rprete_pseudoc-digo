@@ -39,7 +39,9 @@ export function lex(input) {
   while (i < len) {
     const ch = input[i];
 
+    // =========================
     // saltos de línea
+    // =========================
     if (ch === "\n") {
       line++;
       col = 1;
@@ -51,7 +53,9 @@ export function lex(input) {
       continue;
     }
 
+    // =========================
     // espacios
+    // =========================
     if (ch === " " || ch === "\t" || ch === "\f") {
       col++;
       i++;
@@ -59,7 +63,20 @@ export function lex(input) {
     }
 
     // =========================
-    // TAGS o posible "< ="
+    // operadores raros de 3 chars (ej. "==!")
+    // los marcamos como error directo
+    // =========================
+    const three = input.slice(i, i + 3);
+    if (three === "==!") {
+      addError("Operador no reconocido: " + three, three);
+      addToken(T.UNKNOWN, three);
+      i += 3;
+      col += 3;
+      continue;
+    }
+
+    // =========================
+    // TAGS
     // =========================
     if (ch === "<") {
       // ¿es un tag real?
@@ -91,18 +108,8 @@ export function lex(input) {
         continue;
       }
 
-      // 👇 aquí viene tu caso real: "< = 10"
-      let j = i + 1;
-      while (j < len && /\s/.test(input[j])) j++;
-      if (j < len && input[j] === "=") {
-        // "< ="  -> "<="
-        addToken(T.LE);
-        col += (j - i + 1);
-        i = j + 1;
-        continue;
-      }
-
-      // si no era tag ni "< =", es un "<" normal
+      // 👉 AQUÍ ANTES CONVERTÍAS "< =" A "<="
+      // ahora NO lo convertimos: si no es tag, es simplemente "<"
       addToken(T.LT);
       i++;
       col++;
@@ -147,26 +154,24 @@ export function lex(input) {
     if (two === "||") { addToken(T.OR); i += 2; col += 2; continue; }
 
     // =========================
-    // caso especial: "=" con espacios → "<" o ">"
+    // "=" con espacios después
+    // ANTES: lo convertías a <= o >=
+    // AHORA: lo marcamos como error si viene "<" o ">"
     // =========================
     if (ch === "=") {
       let j = i + 1;
       while (j < len && /\s/.test(input[j])) j++;
-      // "= <" o "=<"
-      if (j < len && input[j] === "<") {
-        addToken(T.LE);
+
+      if (j < len && (input[j] === "<" || input[j] === ">")) {
+        const bad = "=" + input[j];
+        addError("Operador no permitido: " + bad, bad);
+        addToken(T.UNKNOWN, bad);
         col += (j - i + 1);
         i = j + 1;
         continue;
       }
-      // "= >" o "=>"
-      if (j < len && input[j] === ">") {
-        addToken(T.GE);
-        col += (j - i + 1);
-        i = j + 1;
-        continue;
-      }
-      // si no, es "="
+
+      // "=" normal (asignación)
       addToken(T.ASSIGN);
       i++;
       col++;
@@ -185,7 +190,7 @@ export function lex(input) {
     if (ch === ";") { addToken(T.SEMI); i++; col++; continue; }
 
     // =========================
-    // números (con 4.5.3)
+    // números (soporta el caso "4.5.3" marcándolo como error)
     // =========================
     if (/[0-9]/.test(ch)) {
       let j = i;
@@ -204,7 +209,8 @@ export function lex(input) {
       }
 
       // número normal
-      addToken(T.NUM, Number(input.slice(i, j)));
+      const numText = input.slice(i, j);
+      addToken(T.NUM, Number(numText));
       col += (j - i);
       i = j;
       continue;
