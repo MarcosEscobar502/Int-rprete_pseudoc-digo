@@ -1,0 +1,75 @@
+<funcion>
+  <parametros>x, y, z</parametros>
+  <codigo>
+    x = 10;
+    y = 20;
+    <if>
+      <condicion>x > 0 @ y < 50</condicion>
+      <codigo>
+        z = 100;
+      </codigo>
+    </if>
+
+<funcion>
+  <parametros>a, b, c</parametros>
+  <codigo>
+    a = 1;
+    b = 2;
+    <do>
+      <condicion>a < 10</condicion>
+      <codigo>
+        a = a + 1;
+      </codigo>
+    </do>
+  </codigo>
+</funcion>
+
+<funcion>
+  <parametros>id1, #id2, id3</parametros>
+  <codigo>
+    id1 = 10;
+    <if>
+      <condicion>id1 < id3</condicion>
+      <codigo>
+        total$ = id1 + id3;
+      </codigo>
+    </if>
+  </codigo>
+</funcion>
+
+<funcion>
+  <parametros>x, y</parametros>
+  <codigo>
+    <if>
+      <codigo>
+        <condicion>x < y</condicion>
+        result = x + y;
+      </codigo>
+    </if>
+  </codigo>
+</funcion>
+
+<funcion>
+  <parametros>a, b</parametros>
+  <codigo>
+    <if>
+      <condicion>a ==! 10</condicion>
+      <codigo>
+        a = 4.5.2;
+      </codigo>
+    </if>
+  </codigo>
+</funcion>
+
+<funcion>
+  <parametros>id1, id2</parametros>
+  <codigo>
+    id1 = 5;
+    id2 = id1 + 2;
+    <if>
+      <condicion>id1 > 0 and id2 < 10¿</condicion>
+      <codigo>
+        msg = "OK"¡;
+      </codigo>
+    </if>
+</funcion>

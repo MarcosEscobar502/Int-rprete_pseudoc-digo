@@ -1,0 +1,52 @@
+<funcion>
+  <parametros>x, y, 4.5.3</parametros>
+  <codigo>
+    x = 10;
+    y = x + @z;
+    <if>
+      <condicion>x => 5</condicion>
+      <codigo>
+        total# = 100;
+      </codigo>
+    </if>
+  </codigo>
+</funcion>
+
+<funcion>
+  <parametros>1a, 2b, z</parametros>
+  <codigo>
+    var1 = 20;
+    <if>
+      <condicion>var1 =< 10</condicion>
+      <codigo>
+        res = var1 + 5;
+      </codigo>
+    </if>
+  </codigo>
+</funcion>
+
+<funcion>
+  <parametros>id_1, id2, 45</parametros>
+  <codigo>
+    id_1 = 1;
+    <if>
+      <condicion>id_1 ==! 0</condicion>
+      <codigo>
+        msg = "ok"¡;
+      </codigo>
+    </if>
+  </codigo>
+</funcion>
+
+<funcion>
+  <parametros>id1, id2, id3</parametros>
+  <codigo>
+    id1 = 10;
+    <if>
+      <condicion>id1 > 0 and id2 < 50</condicion>
+      <codigo>
+        c = id3 + %id2;
+      </codigo>
+    </if>
+  </codigo>
+</funcion>

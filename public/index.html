@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Validador de Pseudocódigo UMG (Node.js)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Validador de Pseudocódigo UMG (Node.js)</h1>
+      <p>Sube cualquiera de los 6 .txt de prueba o tu propio archivo.</p>
+      <form id="uploadForm">
+        <input type="file" name="file" accept=".txt" required />
+        <button type="submit">Validar</button>
+      </form>
+
+      <button id="btnAll">Validar los 6 de una vez</button>
+
+      <div id="result" class="hidden">
+        <h2>Reporte</h2>
+        <table id="reportTable">
+          <thead>
+            <tr><th>Campo</th><th>Valor</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <h3>Errores léxicos</h3>
+        <ul id="lexErrors"></ul>
+        <h3>Errores sintácticos</h3>
+        <ul id="synErrors"></ul>
+      </div>
+
+      <div id="multi" class="hidden">
+        <h2>Reportes de todos los archivos</h2>
+        <div id="multiReports"></div>
+      </div>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
