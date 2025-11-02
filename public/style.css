@@ -1,8 +1,8 @@
 .container {
   max-width: 800px;
   margin: 2rem auto;
-  background: #101010;
-  color: #fff;
+  background: #d6cccc;
+  color: #131212;
   border-radius: .5rem;
   padding: 1.5rem 2rem;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -15,14 +15,14 @@ form {
   margin-bottom: 1rem;
 }
 button {
-  background: #00b894;
+  background: #333e7c;
   border: none;
   border-radius: .35rem;
   padding: .4rem 1rem;
   color: #fff;
   cursor: pointer;
 }
-button:hover { background: #019875; }
+button:hover { background: #2e22a0; }
 .hidden { display: none; }
 table {
   width: 100%;
